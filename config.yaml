@@ -9,6 +9,7 @@ filters:
   # 包含的命名空间（正则表达式）
   namespaces:
     #- ".*"
+    - "devops"
     - "others-staging"
   # 排除的命名空间（正则表达式）
   exclude_namespaces:

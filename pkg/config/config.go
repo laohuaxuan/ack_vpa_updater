@@ -85,7 +85,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	if cfg.UpdatePolicy.CheckInterval <= 0 {
-		cfg.UpdatePolicy.CheckInterval = 10
+		cfg.UpdatePolicy.CheckInterval = 3600
 	}
 
 	if cfg.UpdatePolicy.SafetyRedundancy <= 0 || cfg.UpdatePolicy.SafetyRedundancy > 1 {

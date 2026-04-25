@@ -12,6 +12,8 @@ import (
 	"ack_vpa_updater/pkg/notification"
 	"ack_vpa_updater/pkg/persistence"
 	"ack_vpa_updater/pkg/update"
+
+	"k8s.io/client-go/dynamic"
 )
 
 func main() {
@@ -41,7 +43,6 @@ func main() {
 		fmt.Printf("初始化 K8s 客户端失败: %v\n", err)
 		os.Exit(1)
 	}
-
 	//判断是否启用资源画像
 	profile, err := ack.GetRecommendationProfile(dynamicClient)
 	if err != nil {
@@ -55,6 +56,29 @@ func main() {
 	}
 	fmt.Println("已开启资源画像")
 
+	//定时执行更新任务
+	duration := time.Duration(cfg.UpdatePolicy.CheckInterval) * time.Second
+	ticker := time.NewTicker(duration)
+	defer ticker.Stop()
+	for range ticker.C {
+		//防止阻塞到下一个周期，每个周期独立执行
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					fmt.Printf("任务执行发生panic：%\v\n", err)
+					// 发送告警：notification.SendErrorNotification(err)
+				}
+			}()
+			err := updateTask(dynamicClient, cfg, filter)
+			if err != nil {
+				fmt.Printf("执行任务失败: %v\n", err)
+			}
+		}()
+	}
+}
+
+func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config, filter *filter.Filter) error {
+	fmt.Printf("============开始执行任务: %v============\n", time.Now())
 	result := &update.UpdateResult{
 		StartTime: time.Now().Format(time.RFC3339),
 		Records:   make([]update.UpdateRecord, 0),
@@ -63,7 +87,8 @@ func main() {
 	namespaces, err := kubernetes.GetNamespace(dynamicClient)
 	if err != nil {
 		fmt.Printf("获取命名空间失败: %v\n", err)
-		os.Exit(1)
+		return err
+		// os.Exit(1)
 	}
 
 	fmt.Printf("发现 %d 个命名空间\n", len(namespaces))
@@ -134,5 +159,6 @@ func main() {
 		}
 	}
 
-	fmt.Println("处理完成")
+	fmt.Printf("============完成任务: %v============\n", time.Now())
+	return nil
 }

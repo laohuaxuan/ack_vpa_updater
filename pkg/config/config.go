@@ -11,6 +11,8 @@ import (
 
 type Config struct {
 	Kubeconfig   string            `json:"kubeconfig"`
+	InCluster    bool              `json:"in_cluster"`
+	ApiServer    string            `json:"api_server"`
 	Filters      Filters           `json:"filters"`
 	UpdatePolicy UpdatePolicy      `json:"update_policy"`
 	Feishu       FeishuConfig      `json:"feishu"`

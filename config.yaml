@@ -1,8 +1,13 @@
 # ACK VPA Updater 配置文件
 
 # Kubernetes 配置
-#kubeconfig: "~/.kube/public-dev"
+# kubeconfig 方式（本地开发使用）
 kubeconfig: "/Users/Zhuanz/.kube/public-dev"
+
+# in-cluster 方式（Pod 内运行使用，自动使用 ServiceAccount）,优先级高于kubeconfig
+in_cluster: false
+# Kubernetes API Server 地址（可选，用于 in-cluster 模式）
+api_server: ""
 
 # 过滤规则
 filters:

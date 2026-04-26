@@ -38,7 +38,16 @@ func main() {
 	fmt.Printf("   检查间隔时间: %d\n", cfg.UpdatePolicy.CheckInterval)
 	fmt.Printf("   安全冗余值: %.2f\n", cfg.UpdatePolicy.SafetyRedundancy)
 
-	dynamicClient, err := kubernetes.InitClient(cfg.Kubeconfig)
+	// 初始化 Kubernetes 动态客户端
+	// 支持 kubeconfig 文件和 in-cluster (ServiceAccount) 两种模式
+	var dynamicClient *dynamic.DynamicClient
+	if cfg.InCluster {
+		fmt.Println("使用 in-cluster 模式 (ServiceAccount) 连接 Kubernetes")
+		dynamicClient, err = kubernetes.InitClientWithInCluster()
+	} else {
+		fmt.Printf("使用 kubeconfig 模式连接 Kubernetes: %s\n", cfg.Kubeconfig)
+		dynamicClient, err = kubernetes.InitClientWithKubeconfig(cfg.Kubeconfig)
+	}
 	if err != nil {
 		fmt.Printf("初始化 K8s 客户端失败: %v\n", err)
 		os.Exit(1)

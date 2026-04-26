@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ack-vpa-updater-config
+  namespace: devops
+data:
+  config.yaml: |
+    kubeconfig: "/Users/Zhuanz/.kube/public-dev"
+
+    # in-cluster 方式（Pod 内运行使用，自动使用 ServiceAccount）,优先级高于kubeconfig
+    in_cluster: true
+    # Kubernetes API Server 地址（可选，用于 in-cluster 模式）
+    api_server: ""
+
+    # 过滤规则
+    filters:
+      # 包含的命名空间（正则表达式）
+      namespaces:
+        #- ".*"
+        - "devops"
+        - "others-staging"
+      # 排除的命名空间（正则表达式）
+      exclude_namespaces:
+        - "kube-system"
+        - "default"
+        - "kubesphere-system"
+        - "ack-csi-fuse"
+        - "ack-onepilot"
+      # 包含的 Deployment（正则表达式）
+      deployments:
+        - ".*"
+      # 排除的 Deployment（正则表达式）
+      exclude_deployments:
+        - "test-.*"
+
+    # 更新策略
+    update_policy:
+      # 每批更新的数量
+      batch_size: 5
+      # 成功率阈值（0-1）
+      success_rate_threshold: 0.5
+      # Pod 就绪超时时间（秒）
+      pod_ready_timeout: 300
+      # 检查间隔时间（秒）
+      check_interval: 3600
+      # 安全冗余值（0-1）
+      safetyRedundancy: 0.3
+
+    # 飞书配置
+    feishu:
+      # 是否启用
+      enabled: true
+      # 飞书机器人 Webhook URL
+      webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/3ae16c18-42f6-4c12-8214-f9a85c49a009"
+      # 飞书机器人密钥
+      #secret: "3ae16c18-42f6-4c12-8214-f9a85c49a009"
+
+    # 持久化配置
+    persistence:
+      # 是否启用
+      enabled: false
+      # 存储类型：file 或 mysql
+      type: "mysql"
+      # 数据目录（仅file类型使用）
+      data_dir: "./data"
+      # 更新日志文件（仅file类型使用）
+      update_log_file: "update_log.json"
+      # 报告文件（仅file类型使用）
+      report_file: "report.json"
+      # MySQL配置
+      mysql:
+        # MySQL主机
+        host: "localhost"
+        # MySQL端口
+        port: 3306
+        # MySQL用户名
+        user: "root"
+        # MySQL密码
+        password: "your-password"
+        # MySQL数据库
+        database: "ack_vpa_updater"
+        # 字符集
+        charset: "utf8mb4"

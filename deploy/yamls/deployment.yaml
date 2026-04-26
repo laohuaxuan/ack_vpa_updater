@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ack-vpa-updater
+  namespace: devops
+  labels:
+    app: ack-vpa-updater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ack-vpa-updater
+  template:
+    metadata:
+      labels:
+        app: ack-vpa-updater
+    spec:
+      # ========================================
+      # 7. 在 Pod 中指定 ServiceAccount
+      # ========================================
+      serviceAccountName: ack-vpa-updater  # 这里指定要使用的 ServiceAccount
+      
+      containers:
+      - name: ack-vpa-updater
+        image: ack-vpa-updater:latest  # 替换为您的镜像地址
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CONFIG_FILE
+          value: "/app/config.yaml"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: ack-vpa-updater-config
+      restartPolicy: Always

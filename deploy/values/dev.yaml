@@ -11,6 +11,11 @@ containers:
     - mountPath: /app/config.yaml
       subPath: config.yaml
       name: ack-vpa-updater-config
+volumes:
+  - name: ack-vpa-updater-config
+    configMap:
+      name: ack-vpa-updater-config
+serviceAccountName: ack-vpa-updater
 service:
   type: ClusterIP
   ports:

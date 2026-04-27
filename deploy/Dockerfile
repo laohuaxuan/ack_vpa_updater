@@ -11,6 +11,8 @@ FROM acr-openxlab-prod-registry-vpc.cn-shanghai.cr.aliyuncs.com/public/alpine:la
 WORKDIR /app
 COPY --from=builder /app .
 
-ENV TZ=Asia/Shanghai
+#ENV TZ=Asia/Shanghai
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
 
 ENTRYPOINT ["./ack-vpa-updater"]

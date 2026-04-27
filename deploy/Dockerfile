@@ -12,7 +12,8 @@ WORKDIR /app
 COPY --from=builder /app .
 
 #ENV TZ=Asia/Shanghai
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
 ENTRYPOINT ["./ack-vpa-updater"]

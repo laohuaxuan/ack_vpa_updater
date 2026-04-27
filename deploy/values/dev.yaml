@@ -7,6 +7,10 @@ containers:
     limits:
       cpu: 100m
       memory: 128Mi
+  livenessProbe: 
+    enabled: false
+  readinessProbe:
+    enabled: false
   volumeMounts:
   - mountPath: /app/config.yaml
     subPath: config.yaml

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ack_vpa_updater/pkg/config"
+	"ack_vpa_updater/pkg/errors"
 	"ack_vpa_updater/pkg/update"
 )
 
@@ -21,15 +22,91 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 	successRate := 0.0
 	if result.TotalCount > 0 {
 		successRate = float64(result.SuccessCount) / float64(result.TotalCount) * 100
+	} else {
+		return fmt.Errorf(errors.ErrNoRecords)
 	}
 
-	message := fmt.Sprintf("**ACK VPA Updater 更新报告**\n\n"+
-		"时间: %s\n"+
-		"总数: %d\n"+
-		"成功: %d\n"+
-		"失败: %d\n"+
-		"成功率: %.1f%%",
-		result.EndTime, result.TotalCount, result.SuccessCount, result.FailureCount, successRate)
+	// 构建报告消息
+	var messageBuffer bytes.Buffer
+	messageBuffer.WriteString("**ACK VPA Updater 更新报告**\n\n")
+	messageBuffer.WriteString(fmt.Sprintf("时间: %s\n", result.EndTime))
+	messageBuffer.WriteString(fmt.Sprintf("总数: %d | 成功: %d | 失败: %d | 成功率: %.1f%%\n\n",
+		result.TotalCount, result.SuccessCount, result.FailureCount, successRate))
+
+	// 添加成功更新的 Deployment 详情
+	successRecords := make([]update.UpdateRecord, 0)
+	failureRecords := make([]update.UpdateRecord, 0)
+
+	for _, record := range result.Records {
+		if record.Status == "success" {
+			successRecords = append(successRecords, record)
+		} else {
+			failureRecords = append(failureRecords, record)
+		}
+	}
+
+	// 显示成功更新的 Deployment
+	if len(successRecords) > 0 {
+		messageBuffer.WriteString("---\n")
+		messageBuffer.WriteString(fmt.Sprintf("**✅ 成功更新 (%d 个)**\n\n", len(successRecords)))
+
+		for i, record := range successRecords {
+			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.Deployment))
+			if record.ContainerName != "" {
+				messageBuffer.WriteString(fmt.Sprintf("   容器: %s\n", record.ContainerName))
+			}
+			messageBuffer.WriteString("   修改后资源:\n")
+			if len(record.Request) > 0 {
+				messageBuffer.WriteString("     requests: ")
+				for k, v := range record.Request {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			if len(record.Limit) > 0 {
+				messageBuffer.WriteString("     limits: ")
+				for k, v := range record.Limit {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			messageBuffer.WriteString("\n")
+		}
+	}
+
+	// 显示更新失败的 Deployment
+	if len(failureRecords) > 0 {
+		messageBuffer.WriteString("---\n")
+		messageBuffer.WriteString(fmt.Sprintf("**❌ 更新失败 (%d 个)**\n\n", len(failureRecords)))
+
+		for i, record := range failureRecords {
+			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.Deployment))
+			if record.ContainerName != "" {
+				messageBuffer.WriteString(fmt.Sprintf("   容器: %s\n", record.ContainerName))
+			}
+			messageBuffer.WriteString("   计划修改资源:\n")
+			if len(record.Request) > 0 {
+				messageBuffer.WriteString("     requests: ")
+				for k, v := range record.Request {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			if len(record.Limit) > 0 {
+				messageBuffer.WriteString("     limits: ")
+				for k, v := range record.Limit {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			if record.Error != "" {
+				messageBuffer.WriteString(fmt.Sprintf("   错误原因: %s\n", record.Error))
+			}
+			messageBuffer.WriteString("\n")
+		}
+	}
+
+	message := messageBuffer.String()
 
 	payload := map[string]interface{}{
 		"msg_type": "text",

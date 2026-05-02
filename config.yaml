@@ -28,7 +28,7 @@ filters:
     - ".*"
   # 排除的 Deployment（正则表达式）
   exclude_deployments:
-    - "test-.*"
+    - "ack-vpa-updater"
 
 # 更新策略
 update_policy:
@@ -39,7 +39,7 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 3600
+  check_interval: 180
   # 安全冗余值（0-1）
   safetyRedundancy: 0.3
 

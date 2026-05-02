@@ -137,10 +137,6 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 			if err != nil {
 				return fmt.Errorf("解析 CPU request资源失败: %v\n", err)
 			}
-			cpuQtyLimit, err := resource.ParseQuantity(container.Limit["cpu"])
-			if err != nil {
-				return fmt.Errorf("解析 CPU limit资源失败: %v\n", err)
-			}
 			memQtyRequset, err := resource.ParseQuantity(container.Request["memory"])
 			if err != nil {
 				return fmt.Errorf("解析 Memory request资源失败: %v\n", err)
@@ -153,17 +149,15 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 			// 更新容器资源
 			cpuRequestStr := cpuQtyRequest.String()
 			memRequestStr := memQtyRequset.String()
-			cpuLimitStr := cpuQtyLimit.String()
 			memLimitStr := memQtyLimit.String()
 
-			// 修改容器Map中的资源
+			// 修改容器Map中的资源（只设置 memory limit，不设置 CPU limit）
 			resources := make(map[string]interface{})
 			resources["requests"] = map[string]interface{}{
 				"cpu":    cpuRequestStr,
 				"memory": memRequestStr,
 			}
 			resources["limits"] = map[string]interface{}{
-				"cpu":    cpuLimitStr,
 				"memory": memLimitStr,
 			}
 			containerMap["resources"] = resources

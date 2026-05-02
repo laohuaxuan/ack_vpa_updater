@@ -297,11 +297,14 @@ func calculateRecommendation(target map[string]interface{}, safetyRedundancy flo
 	//计算推荐值
 	// 即使没有明确的操作类型，也设置默认值
 	requests["cpu"] = fmt.Sprintf("%dm", cpuVal)
-	limits["cpu"] = fmt.Sprintf("%dm", int64(math.Ceil(float64(cpuVal)*(1+safetyRedundancy))))
+	limits["cpu"] = ""
+	//limits["cpu"] = fmt.Sprintf("%dm", int64(math.Ceil(float64(cpuVal)*(1+safetyRedundancy))))
 
-	result := int64(math.Ceil(float64(memVal) * (1 + safetyRedundancy)))
+	result := int64(math.Ceil(float64(memVal)))
+	//requests["memory"] = fmt.Sprintf("%dMi", result)
 	requests["memory"] = fmt.Sprintf("%dMi", result)
-	limits["memory"] = fmt.Sprintf("%dMi", result)
+	limit_result := int64(math.Ceil(float64(result) * (1 + safetyRedundancy)))
+	limits["memory"] = fmt.Sprintf("%dMi", limit_result)
 
 	return requests, limits, nil
 }

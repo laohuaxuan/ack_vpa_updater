@@ -39,9 +39,9 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 180
+  check_interval: 120
   # 安全冗余值（0-1）
-  safetyRedundancy: 0.3
+  safetyRedundancy: 1
 
 # 飞书配置
 feishu:

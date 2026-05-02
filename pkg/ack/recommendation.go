@@ -222,13 +222,13 @@ func parseContainerRecommendation(rec *unstructured.Unstructured, namespace stri
 					requestMap["cpu"] = cpuStr
 				}
 			}
-			if val, ok := limits["cpu"]; ok {
-				if cpuStr, ok := val.(string); ok {
-					limitMap["cpu"] = cpuStr
-				} else if cpuInt, ok := val.(int64); ok {
-					limitMap["cpu"] = fmt.Sprintf("%dm", cpuInt)
-				}
-			}
+			// if val, ok := limits["cpu"]; ok {
+			// 	if cpuStr, ok := val.(string); ok {
+			// 		limitMap["cpu"] = cpuStr
+			// 	} else if cpuInt, ok := val.(int64); ok {
+			// 		limitMap["cpu"] = fmt.Sprintf("%dm", cpuInt)
+			// 	}
+			// }
 
 			// 处理内存
 			if val, ok := requests["memory"]; ok {
@@ -300,7 +300,6 @@ func calculateRecommendation(target map[string]interface{}, safetyRedundancy flo
 	//limits["cpu"] = fmt.Sprintf("%dm", int64(math.Ceil(float64(cpuVal)*(1+safetyRedundancy))))
 
 	result := int64(math.Ceil(float64(memVal)))
-	//requests["memory"] = fmt.Sprintf("%dMi", result)
 	requests["memory"] = fmt.Sprintf("%dMi", result)
 	limit_result := int64(math.Ceil(float64(result) * (1 + safetyRedundancy)))
 	limits["memory"] = fmt.Sprintf("%dMi", limit_result)

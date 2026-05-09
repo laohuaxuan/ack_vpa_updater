@@ -25,7 +25,8 @@ filters:
     - "ack-onepilot"
   # 包含的 Deployment（正则表达式）
   deployments:
-    - ".*"
+    #- ".*"
+    - "alibaba-domain-exporter-deploy"
   # 排除的 Deployment（正则表达式）
   exclude_deployments:
     - "ack-vpa-updater"

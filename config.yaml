@@ -33,14 +33,6 @@ filters:
   exclude_deployments:
     #- "ack-.*"
     # - "devops/ack-vpa-updater-deploy"
-    # - "alibaba-domain-exporter-deploy"
-    # - "test-415-be-deploy"
-    # - "opsmind-deploy"
-    # - "test-48-deploy"
-    # - "agentic-search-deploy"
-    # - "chat2issue-deploy"
-    # - "internbootcamp-be-deploy" 
-    # - "internbootcamp-fe-deploy"
 # 更新策略
 update_policy:
   # 每批更新的数量

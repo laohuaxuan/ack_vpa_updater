@@ -1,10 +1,19 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
+	"github.com/fsnotify/fsnotify"
 	"sigs.k8s.io/yaml"
+)
+
+// 全局配置实例
+var (
+	globalConfig *Config
+	configLock   sync.RWMutex
 )
 
 //处理配置文件的加载和解析
@@ -131,4 +140,81 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// GetConfig 获取当前配置（线程安全）
+func GetConfig() *Config {
+	configLock.RLock()
+	defer configLock.RUnlock()
+	fmt.Println("【step 1】已获取config.yaml配置文件...")
+	return globalConfig
+
+}
+
+// SetConfig 设置配置（线程安全）
+func SetConfig(cfg *Config) {
+	configLock.Lock()
+	globalConfig = cfg
+	configLock.Unlock()
+	fmt.Println("【step 2】已设置config.yaml配置文件...")
+}
+
+// WatchConfig 监控配置文件变化并自动重新加载
+func WatchConfig(configPath string, onReload func(*Config)) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("创建文件监控器失败: %v", err)
+	}
+
+	// 将相对路径转换为绝对路径
+	absConfigPath, err := filepath.Abs(configPath)
+	if err != nil {
+		watcher.Close()
+		return fmt.Errorf("获取配置文件绝对路径失败: %v", err)
+	}
+
+	// 获取配置文件所在目录
+	configDir := filepath.Dir(absConfigPath)
+
+	err = watcher.Add(configDir)
+	if err != nil {
+		watcher.Close()
+		return fmt.Errorf("添加监控目录失败: %v", err)
+	}
+
+	fmt.Printf("开始监控配置文件: %s\n", absConfigPath)
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				// 只处理配置文件的修改事件（使用绝对路径比较）
+				if event.Name == absConfigPath && (event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create) {
+					fmt.Printf("检测到配置文件变化: %s\n", event.Name)
+					newConfig, err := LoadConfig(absConfigPath)
+					if err != nil {
+						fmt.Printf("重新加载配置失败: %v\n", err)
+						continue
+					}
+					// 更新全局配置
+					SetConfig(newConfig)
+					fmt.Println("配置文件已重新加载")
+					// 调用回调函数
+					if onReload != nil {
+						onReload(newConfig)
+					}
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				fmt.Printf("配置监控错误: %v\n", err)
+			}
+		}
+	}()
+
+	return nil
 }

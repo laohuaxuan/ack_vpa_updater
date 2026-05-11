@@ -14,7 +14,7 @@ filters:
   # 包含的命名空间
   namespaces:
     #- ".*"
-    - "devops"
+    #- "devops"
     - "others-dev"
   # 排除的命名空间(优先级比namespaces高)
   exclude_namespaces:
@@ -32,7 +32,7 @@ filters:
   # 排除的 Deployment(优先级比deployments高)
   exclude_deployments:
     #- "ack-.*"
-    # - "ack-vpa-updater-deploy"
+    # - "devops/ack-vpa-updater-deploy"
     # - "alibaba-domain-exporter-deploy"
     # - "test-415-be-deploy"
     # - "opsmind-deploy"
@@ -50,7 +50,7 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 30
+  check_interval: 60
   # 安全冗余值（0-1）
   safetyRedundancy: 1
 

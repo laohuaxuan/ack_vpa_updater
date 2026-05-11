@@ -25,12 +25,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	filter, err := filter.NewFilter(&cfg.Filters)
-	if err != nil {
-		fmt.Printf("初始化过滤器失败: %v\n", err)
-		os.Exit(1)
-	}
-
+	// 设置全局配置
+	config.SetConfig(cfg)
 	fmt.Printf("配置加载成功\n")
 	fmt.Printf("   批处理大小: %d\n", cfg.UpdatePolicy.BatchSize)
 	fmt.Printf("   成功阈值: %.0f%%\n", cfg.UpdatePolicy.SuccessRateThreshold*100)
@@ -65,28 +61,99 @@ func main() {
 	}
 	fmt.Println("已开启资源画像")
 
-	//定时执行更新任务
-	duration := time.Duration(cfg.UpdatePolicy.CheckInterval) * time.Second
-	ticker := time.NewTicker(duration)
+	// 启动配置文件监控（热更新）
+	err = config.WatchConfig("config.yaml", func(newConfig *config.Config) {
+		fmt.Printf("\n配置已更新:\n")
+		fmt.Printf("   批处理大小: %d\n", newConfig.UpdatePolicy.BatchSize)
+		fmt.Printf("   成功阈值: %.0f%%\n", newConfig.UpdatePolicy.SuccessRateThreshold*100)
+		fmt.Printf("   Pod 就绪超时时间: %d\n", newConfig.UpdatePolicy.PodReadyTimeout)
+		fmt.Printf("   检查间隔时间: %d\n", newConfig.UpdatePolicy.CheckInterval)
+		fmt.Printf("   安全冗余值: %.2f\n", newConfig.UpdatePolicy.SafetyRedundancy)
+	})
+	if err != nil {
+		fmt.Printf("启动配置监控失败: %v\n", err)
+	}
+	fmt.Println("【step 3】已启动配置监控")
+
+	// 动态定时器 - 支持配置热更新
+	runWithDynamicTicker(dynamicClient)
+}
+
+// runWithDynamicTicker 使用动态间隔时间的定时器
+func runWithDynamicTicker(dynamicClient *dynamic.DynamicClient) {
+	var ticker *time.Ticker
+	var tickerChan <-chan time.Time
+
+	// 初始化定时器
+	updateTicker := func() {
+		cfg := config.GetConfig()
+		if cfg == nil {
+			cfg = &config.Config{}
+			cfg.UpdatePolicy.CheckInterval = 300 // 默认5分钟
+		}
+		duration := time.Duration(cfg.UpdatePolicy.CheckInterval) * time.Second
+
+		if ticker != nil {
+			ticker.Stop()
+		}
+		ticker = time.NewTicker(duration)
+		tickerChan = ticker.C
+		fmt.Printf("定时器已更新，间隔: %v\n", duration)
+	}
+
+	// 初始创建定时器
+	updateTicker()
 	defer ticker.Stop()
-	for range ticker.C {
-		//防止阻塞到下一个周期，每个周期独立执行
-		go func() {
-			defer func() {
-				if err := recover(); err != nil {
-					fmt.Printf("任务执行发生panic：%\v\n", err)
-					// 发送告警：notification.SendErrorNotification(err)
+
+	// 创建配置变化监听通道
+	configChangeChan := make(chan struct{}, 1)
+	go func() {
+		lastCheckInterval := config.GetConfig().UpdatePolicy.CheckInterval
+		for {
+			time.Sleep(5 * time.Second) // 每5秒检查一次配置变化
+			cfg := config.GetConfig()
+			if cfg != nil && cfg.UpdatePolicy.CheckInterval != lastCheckInterval {
+				lastCheckInterval = cfg.UpdatePolicy.CheckInterval
+				select {
+				case configChangeChan <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-tickerChan:
+			// 执行更新任务
+			go func() {
+				defer func() {
+					if err := recover(); err != nil {
+						fmt.Printf("任务执行发生panic：%v\n", err)
+					}
+				}()
+				// 使用全局配置（支持热更新）
+				currentConfig := config.GetConfig()
+				err := updateTask(dynamicClient, currentConfig)
+				if err != nil {
+					fmt.Printf("执行任务失败: %v\n", err)
 				}
 			}()
-			err := updateTask(dynamicClient, cfg, filter)
-			if err != nil {
-				fmt.Printf("执行任务失败: %v\n", err)
-			}
-		}()
+
+		case <-configChangeChan:
+			// 配置变化，更新定时器
+			fmt.Println("检测到检查间隔配置变化，更新定时器...")
+			updateTicker()
+		}
 	}
 }
 
-func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config, filter *filter.Filter) error {
+func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config) error {
+	// 根据最新配置创建 filter
+	fl, err := filter.NewFilter(&cfg.Filters)
+	if err != nil {
+		return fmt.Errorf("创建过滤器失败: %v", err)
+	}
 	fmt.Printf("============开始执行任务: %v============\n", time.Now())
 	result := &update.UpdateResult{
 		StartTime: time.Now().Format(time.RFC3339),
@@ -104,8 +171,8 @@ func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config, filter
 
 	//循环namespace
 	for _, ns := range namespaces {
-		if !filter.ShouldProcessNamespace(ns) {
-			fmt.Printf("跳过命名空间: %s\n", ns)
+		if !fl.ShouldProcessNamespace(ns) {
+			//fmt.Printf("跳过命名空间: %s\n", ns)
 			continue
 		}
 
@@ -122,7 +189,7 @@ func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config, filter
 
 		toUpdate := make([]ack.Recommendation, 0)
 		for _, rec := range recommendations {
-			if !filter.ShouldProcessDeployment(rec.Namespace, rec.DeployName) {
+			if !fl.ShouldProcessDeployment(rec.Namespace, rec.DeployName) {
 				fmt.Printf("跳过 Deployment: %s\n", rec.DeployName)
 				continue
 			}

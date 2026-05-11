@@ -122,11 +122,12 @@ func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config, filter
 
 		toUpdate := make([]ack.Recommendation, 0)
 		for _, rec := range recommendations {
-			if !filter.ShouldProcessDeployment(rec.DeployName) {
+			if !filter.ShouldProcessDeployment(rec.Namespace, rec.DeployName) {
 				fmt.Printf("跳过 Deployment: %s\n", rec.DeployName)
 				continue
 			}
 			toUpdate = append(toUpdate, rec)
+			fmt.Printf("需要更新的 Deployment: %s\n", rec.DeployName)
 		}
 
 		if len(toUpdate) == 0 {

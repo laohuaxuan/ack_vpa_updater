@@ -11,26 +11,36 @@ api_server: ""
 
 # 过滤规则
 filters:
-  # 包含的命名空间（正则表达式）
+  # 包含的命名空间
   namespaces:
     #- ".*"
     - "devops"
-    - "others-staging"
-  # 排除的命名空间（正则表达式）
+    - "others-dev"
+  # 排除的命名空间(优先级比namespaces高)
   exclude_namespaces:
+    #- "devops"
     - "kube-system"
     - "default"
     - "kubesphere-system"
     - "ack-csi-fuse"
     - "ack-onepilot"
-  # 包含的 Deployment（正则表达式）
+  # 包含的 Deployment
   deployments:
-    #- ".*"
-    - "alibaba-domain-exporter-deploy"
-  # 排除的 Deployment（正则表达式）
-  exclude_deployments:
-    - "ack-vpa-updater"
+    - "devops/.*"
+    - "others-dev/test.*"
 
+  # 排除的 Deployment(优先级比deployments高)
+  exclude_deployments:
+    #- "ack-.*"
+    # - "ack-vpa-updater-deploy"
+    # - "alibaba-domain-exporter-deploy"
+    # - "test-415-be-deploy"
+    # - "opsmind-deploy"
+    # - "test-48-deploy"
+    # - "agentic-search-deploy"
+    # - "chat2issue-deploy"
+    # - "internbootcamp-be-deploy" 
+    # - "internbootcamp-fe-deploy"
 # 更新策略
 update_policy:
   # 每批更新的数量
@@ -40,14 +50,14 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 120
+  check_interval: 30
   # 安全冗余值（0-1）
   safetyRedundancy: 1
 
 # 飞书配置
 feishu:
   # 是否启用
-  enabled: true
+  enabled: false
   # 飞书机器人 Webhook URL
   webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/3ae16c18-42f6-4c12-8214-f9a85c49a009"
   # 飞书机器人密钥

@@ -60,6 +60,7 @@ func NewFilter(filters *config.Filters) (*Filter, error) {
 }
 
 func (f *Filter) ShouldProcessNamespace(namespace string) bool {
+	// 先检查排除的命名空间，优先级高
 	for _, re := range f.nsExcludePatterns {
 		if re.MatchString(namespace) {
 			return false
@@ -79,9 +80,11 @@ func (f *Filter) ShouldProcessNamespace(namespace string) bool {
 	return false
 }
 
-func (f *Filter) ShouldProcessDeployment(deployment string) bool {
+func (f *Filter) ShouldProcessDeployment(namespace, deployment string) bool {
+	// 先检查排除的 Deployment，优先级高
+	// 检查部署是否在包含列表中
 	for _, re := range f.depExcludePatterns {
-		if re.MatchString(deployment) {
+		if re.MatchString(namespace + "/" + deployment) {
 			return false
 		}
 	}
@@ -91,7 +94,7 @@ func (f *Filter) ShouldProcessDeployment(deployment string) bool {
 	}
 
 	for _, re := range f.depIncludePatterns {
-		if re.MatchString(deployment) {
+		if re.MatchString(namespace + "/" + deployment) {
 			return true
 		}
 	}

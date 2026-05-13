@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"regexp"
 
 	"ack_vpa_updater/pkg/config"
@@ -25,6 +26,7 @@ func NewFilter(filters *config.Filters) (*Filter, error) {
 	}
 
 	for _, pattern := range filters.Namespaces {
+		fmt.Printf("包含命名空间: %s\n", pattern)
 		re, err := regexp.Compile("^" + pattern + "$")
 		if err != nil {
 			return nil, err
@@ -33,6 +35,7 @@ func NewFilter(filters *config.Filters) (*Filter, error) {
 	}
 
 	for _, pattern := range filters.ExcludeNamespaces {
+		fmt.Printf("排除命名空间: %s\n", pattern)
 		re, err := regexp.Compile("^" + pattern + "$")
 		if err != nil {
 			return nil, err
@@ -41,6 +44,7 @@ func NewFilter(filters *config.Filters) (*Filter, error) {
 	}
 
 	for _, pattern := range filters.Deployments {
+		fmt.Printf("包含的deployment: %s\n", pattern)
 		re, err := regexp.Compile("^" + pattern + "$")
 		if err != nil {
 			return nil, err
@@ -49,6 +53,7 @@ func NewFilter(filters *config.Filters) (*Filter, error) {
 	}
 
 	for _, pattern := range filters.ExcludeDeployments {
+		fmt.Printf("排除的deployment: %s\n", pattern)
 		re, err := regexp.Compile("^" + pattern + "$")
 		if err != nil {
 			return nil, err
@@ -63,6 +68,7 @@ func (f *Filter) ShouldProcessNamespace(namespace string) bool {
 	// 先检查排除的命名空间，优先级高
 	for _, re := range f.nsExcludePatterns {
 		if re.MatchString(namespace) {
+			fmt.Printf("命名空间：%s匹配排除正则表达式: %s\n", namespace, re.String())
 			return false
 		}
 	}
@@ -73,6 +79,7 @@ func (f *Filter) ShouldProcessNamespace(namespace string) bool {
 
 	for _, re := range f.nsIncludePatterns {
 		if re.MatchString(namespace) {
+			fmt.Printf("命名空间：%s匹配包含正则表达式: %s\n", namespace, re.String())
 			return true
 		}
 	}
@@ -85,6 +92,7 @@ func (f *Filter) ShouldProcessDeployment(namespace, deployment string) bool {
 	// 检查部署是否在包含列表中
 	for _, re := range f.depExcludePatterns {
 		if re.MatchString(namespace + "/" + deployment) {
+			fmt.Printf("deployment：%s/%s匹配排除正则表达式: %s\n", namespace, deployment, re.String())
 			return false
 		}
 	}
@@ -95,6 +103,7 @@ func (f *Filter) ShouldProcessDeployment(namespace, deployment string) bool {
 
 	for _, re := range f.depIncludePatterns {
 		if re.MatchString(namespace + "/" + deployment) {
+			fmt.Printf("deployment：%s/%s匹配包含正则表达式: %s\n", namespace, deployment, re.String())
 			return true
 		}
 	}

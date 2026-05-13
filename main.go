@@ -73,7 +73,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("启动配置监控失败: %v\n", err)
 	}
-	fmt.Println("【step 3】已启动配置监控")
+	fmt.Println("已启动配置监控")
 
 	// 动态定时器 - 支持配置热更新
 	runWithDynamicTicker(dynamicClient)

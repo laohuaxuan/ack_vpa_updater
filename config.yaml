@@ -11,28 +11,28 @@ api_server: ""
 
 # 过滤规则
 filters:
-  # 包含的命名空间
+# 包含的命名空间
   namespaces:
     #- ".*"
-    #- "devops"
+    - "devops"
     - "others-dev"
-  # 排除的命名空间(优先级比namespaces高)
+  #排除命名空间（优先级比namespaces高）
   exclude_namespaces:
-    #- "devops"
-    - "kube-system"
-    - "default"
-    - "kubesphere-system"
-    - "ack-csi-fuse"
-    - "ack-onepilot"
+    #- ".*"
+    # - "kube-system"
+    # - "default"
+    # - "kubesphere-system"
+    # - "ack-csi-fuse"
+    # - "ack-onepilot"
   # 包含的 Deployment
   deployments:
     - "devops/.*"
-    - "others-dev/test.*"
+    - "others-dev/internbootcamp.*"
 
   # 排除的 Deployment(优先级比deployments高)
   exclude_deployments:
-    #- "ack-.*"
-    # - "devops/ack-vpa-updater-deploy"
+    - "others-dev/chat2issue.*"
+    - "devops/webqa-agent-placeholder"
 # 更新策略
 update_policy:
   # 每批更新的数量
@@ -42,7 +42,7 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 60
+  check_interval: 30
   # 安全冗余值（0-1）
   safetyRedundancy: 1
 

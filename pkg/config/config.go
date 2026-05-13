@@ -146,7 +146,7 @@ func LoadConfig(configPath string) (*Config, error) {
 func GetConfig() *Config {
 	configLock.RLock()
 	defer configLock.RUnlock()
-	fmt.Println("【step 1】已获取config.yaml配置文件...")
+	//fmt.Println("【step 1】已获取config.yaml配置文件...")
 	return globalConfig
 
 }
@@ -156,7 +156,7 @@ func SetConfig(cfg *Config) {
 	configLock.Lock()
 	globalConfig = cfg
 	configLock.Unlock()
-	fmt.Println("【step 2】已设置config.yaml配置文件...")
+	//fmt.Println("【step 2】已设置config.yaml配置文件...")
 }
 
 // WatchConfig 监控配置文件变化并自动重新加载

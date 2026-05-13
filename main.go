@@ -19,7 +19,7 @@ import (
 func main() {
 	fmt.Println("ACK VPA Updater 启动...")
 	//加载配置
-	cfg, err := config.LoadConfig("config.yaml")
+	cfg, err := config.LoadConfig("./config/config.yaml")
 	if err != nil {
 		fmt.Printf("加载配置失败: %v\n", err)
 		os.Exit(1)

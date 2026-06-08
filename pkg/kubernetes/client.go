@@ -17,37 +17,18 @@ import (
 // 处理k8s客户端初始化和相关操作
 
 // 初始化动态客户端（用于处理自定义资源CRD）
-// 支持两种模式：
-// 1. kubeconfig 模式：使用本地 kubeconfig 文件
-// 2. in-cluster 模式：使用 Pod 内挂载的 ServiceAccount
 func InitClient(kubeconfig string) (*dynamic.DynamicClient, error) {
-	var config *rest.Config
-	var err error
-
-	// 判断是否使用 in-cluster 模式
-	if kubeconfig == "in-cluster" || kubeconfig == "" {
-		// 使用 in-cluster 配置（Pod 内运行）
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			return nil, fmt.Errorf("创建 in-cluster 配置失败: %v", err)
-		}
-		fmt.Println("使用 in-cluster 模式连接 Kubernetes (ServiceAccount)")
-	} else {
-		// 使用 kubeconfig 文件
-		if kubeconfig == "~" || kubeconfig == "" {
-			kubeconfig = filepath.Join("~", ".kube", "config")
-		}
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return nil, fmt.Errorf("加载 kubeconfig 失败: %v", err)
-		}
-		fmt.Printf("使用 kubeconfig 模式连接 Kubernetes: %s\n", kubeconfig)
+	if kubeconfig == "" || kubeconfig == "~" {
+		kubeconfig = filepath.Join("~", ".kube", "config")
 	}
-
-	// 创建动态客户端（因为Recommendation是自定义资源，所以需要使用动态客户端）
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+	//创建动态客户端（因为Recommendation是自定义资源，所以需要使用动态客户端）
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("创建动态客户端失败: %v", err)
+		return nil, err
 	}
 	return dynamicClient, nil
 }
@@ -84,25 +65,6 @@ func InitClientWithKubeconfig(kubeconfig string) (*dynamic.DynamicClient, error)
 	return dynamicClient, nil
 }
 
-// 静态客户端，无法处理自定义资源（CRD）
-// func InitClient(kubeconfig string) (*kubernetes.Clientset, error) {
-// 	if kubeconfig == "" || kubeconfig == "~" {
-// 		kubeconfig = filepath.Join("~", ".kube", "config")
-// 	}
-
-// 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	clientset, err := kubernetes.NewForConfig(config)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return clientset, nil
-// }
-
 // 获取所有命名空间
 func GetNamespace(dynamicClient *dynamic.DynamicClient) ([]string, error) {
 	//ctx := context.Background()
@@ -123,21 +85,6 @@ func GetNamespace(dynamicClient *dynamic.DynamicClient) ([]string, error) {
 	}
 	return namespaces, nil
 }
-
-// func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
-// 	ctx := context.Background()
-// 	nsList, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	namespaces := make([]string, 0, len(nsList.Items))
-// 	for _, ns := range nsList.Items {
-// 		namespaces = append(namespaces, ns.Name)
-// 	}
-
-// 	return namespaces, nil
-// }
 
 // 检查命名空间下所有Pod是否准备就绪
 func CheckPodsReady(dynamicClient *dynamic.DynamicClient, namespace string) (ready, total int, err error) {
@@ -187,23 +134,3 @@ func checkPodReadiness(pod unstructured.Unstructured) bool {
 	}
 	return isReady
 }
-
-// func CheckPodsReady(clientset *kubernetes.Clientset, namespace string) (ready, total int, err error) {
-// 	ctx := context.Background()
-// 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-// 	if err != nil {
-// 		return 0, 0, err
-// 	}
-
-// 	total = len(pods.Items)
-// 	for _, pod := range pods.Items {
-// 		for _, cond := range pod.Status.Conditions {
-// 			if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-// 				ready++
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	return ready, total, nil
-// }

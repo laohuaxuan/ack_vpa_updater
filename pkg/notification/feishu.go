@@ -30,8 +30,9 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 	var messageBuffer bytes.Buffer
 	messageBuffer.WriteString("**ACK VPA Updater 更新报告**\n\n")
 	messageBuffer.WriteString(fmt.Sprintf("时间: %s\n", result.EndTime))
-	messageBuffer.WriteString(fmt.Sprintf("总数: %d | 成功: %d | 失败: %d | 成功率: %.1f%%\n\n",
+	messageBuffer.WriteString(fmt.Sprintf("总数: %d | 成功: %d | 失败: %d | 成功率: %.1f%%\n",
 		result.TotalCount, result.SuccessCount, result.FailureCount, successRate))
+	messageBuffer.WriteString(fmt.Sprintf("集群: %s\n\n", result.Cluster))
 
 	// 添加成功更新的 Deployment 详情
 	successRecords := make([]update.UpdateRecord, 0)

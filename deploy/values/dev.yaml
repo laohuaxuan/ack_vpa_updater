@@ -13,14 +13,14 @@ containers:
   readinessProbe:
     enabled: false
   volumeMounts:
-  - mountPath: /app/config.yaml
-    subPath: config.yaml
-    name: ack-vpa-updater-config
-    readOnly: false
+    - mountPath: /app/config.yaml
+      subPath: config.yaml
+      name: ack-vpa-updater-config
+      readOnly: false
 volumes:
-- name: ack-vpa-updater-config
-  configMap:
-    name: ack-vpa-updater-config
+  - name: ack-vpa-updater-config
+    configMap:
+      name: ack-vpa-updater-config
 serviceAccountName: ack-vpa-updater
 service:
   type: ClusterIP

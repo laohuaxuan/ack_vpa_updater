@@ -13,7 +13,7 @@ container:
   readinessProbe:
     enabled: false
   volumeMounts:
-    - mountPath: /app/config.yaml
+    - mountPath: /app/config/config.yaml
       subPath: config.yaml
       name: ack-vpa-updater-config
       readOnly: false

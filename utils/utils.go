@@ -40,3 +40,13 @@ func ConvertUnit(cpuStr, memStr string) (cpu int64, mem int64, err error) {
 	mem = memVal.Value() / (1024 * 1024)
 	return cpu, mem, nil
 }
+
+// 计算resource
+func GetTargetAndLimitResources(imgVal, safetyRedundancy, currentLimitVal, currentRequestVal float64) (targetVal, limitVal float64) {
+	//计算新的CPU推荐值和limit值
+	targetVal = float64(imgVal) * (1 + safetyRedundancy)
+	if targetVal > 0 {
+		limitVal = targetVal * float64(currentLimitVal/currentRequestVal)
+	}
+	return targetVal, limitVal
+}

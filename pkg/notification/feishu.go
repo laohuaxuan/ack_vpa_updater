@@ -51,10 +51,29 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 		messageBuffer.WriteString(fmt.Sprintf("**✅ 成功更新 (%d 个)**\n\n", len(successRecords)))
 
 		for i, record := range successRecords {
-			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.Deployment))
+			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.ResourceName))
+			messageBuffer.WriteString(fmt.Sprintf("   资源类型: %s\n", record.Kind))
+
 			if record.ContainerName != "" {
 				messageBuffer.WriteString(fmt.Sprintf("   容器: %s\n", record.ContainerName))
 			}
+			//修改前资源
+			messageBuffer.WriteString("   修改前资源:\n")
+			if len(record.OrignRequest) > 0 {
+				messageBuffer.WriteString("     requests: ")
+				for k, v := range record.OrignRequest {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			if len(record.OrignLimit) > 0 {
+				messageBuffer.WriteString("     limits: ")
+				for k, v := range record.OrignLimit {
+					messageBuffer.WriteString(fmt.Sprintf("%s=%s ", k, v))
+				}
+				messageBuffer.WriteString("\n")
+			}
+			//修改后资源
 			messageBuffer.WriteString("   修改后资源:\n")
 			if len(record.Request) > 0 {
 				messageBuffer.WriteString("     requests: ")
@@ -80,7 +99,7 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 		messageBuffer.WriteString(fmt.Sprintf("**❌ 更新失败 (%d 个)**\n\n", len(failureRecords)))
 
 		for i, record := range failureRecords {
-			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.Deployment))
+			messageBuffer.WriteString(fmt.Sprintf("%d. **%s/%s**\n", i+1, record.Namespace, record.ResourceName))
 			if record.ContainerName != "" {
 				messageBuffer.WriteString(fmt.Sprintf("   容器: %s\n", record.ContainerName))
 			}
@@ -127,13 +146,6 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// if config.Secret != "" {
-	// 	timestamp := time.Now().UnixMilli()
-	// 	sign := generateSign(config.Secret, timestamp)
-	// 	req.Header.Set("X-Feishu-Signature", sign)
-	// 	req.Header.Set("X-Feishu-Timestamp", fmt.Sprintf("%d", timestamp))
-	// }
-
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -148,10 +160,3 @@ func SendFeishuNotification(config config.FeishuConfig, result *update.UpdateRes
 
 	return nil
 }
-
-// func generateSign(secret string, timestamp int64) string {
-// 	stringToSign := fmt.Sprintf("%d\n%s", timestamp, secret)
-// 	h := hmac.New(sha256.New, []byte(secret))
-// 	h.Write([]byte(stringToSign))
-// 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
-// }

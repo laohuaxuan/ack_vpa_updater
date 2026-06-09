@@ -26,6 +26,7 @@ type Config struct {
 	UpdatePolicy UpdatePolicy      `json:"update_policy"`
 	Feishu       FeishuConfig      `json:"feishu"`
 	Persistence  PersistenceConfig `json:"persistence"`
+	Cluster      string            `json:"cluster"`
 }
 
 type Filters struct {

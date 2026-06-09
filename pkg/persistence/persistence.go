@@ -90,8 +90,8 @@ func SaveResultsToMySQL(mysqlConfig config.MySQLConfig, result *update.UpdateRes
 	// 插入更新记录
 	for _, record := range result.Records {
 		_, err := tx.Exec(
-			"INSERT INTO update_records (timestamp, namespace, deployment, container_name, request_cpu, limit_cpu, request_memory, limit_memory, status, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			record.Timestamp, record.Namespace, record.Deployment, record.ContainerName, record.Request["cpu"], record.Limit["cpu"], record.Request["memory"], record.Limit["memory"], record.Status, record.Error,
+			"INSERT INTO update_records (timestamp, namespace, resource_name, container_name, request_cpu, limit_cpu, request_memory, limit_memory, status, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			record.Timestamp, record.Namespace, record.ResourceName, record.ContainerName, record.Request["cpu"], record.Limit["cpu"], record.Request["memory"], record.Limit["memory"], record.Status, record.Error,
 		)
 		if err != nil {
 			tx.Rollback()
@@ -129,7 +129,7 @@ func createTables(db *sql.DB) error {
 		id INT AUTO_INCREMENT PRIMARY KEY,
 		timestamp VARCHAR(50) NOT NULL,
 		namespace VARCHAR(100) NOT NULL,
-		deployment VARCHAR(100) NOT NULL,
+		resource_name VARCHAR(100) NOT NULL,
 		container_name VARCHAR(100) NOT NULL,
 		request_cpu VARCHAR(50) NOT NULL,
 		limit_cpu VARCHAR(50) NOT NULL,

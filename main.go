@@ -189,29 +189,36 @@ func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config) error 
 
 		toUpdate := make([]ack.Recommendation, 0)
 		for _, rec := range recommendations {
-			if !fl.ShouldProcessDeployment(rec.Namespace, rec.DeployName) {
-				fmt.Printf("跳过 Deployment: %s\n", rec.DeployName)
+			if !fl.ShouldProcessDeployment(rec.Namespace, rec.ResourceName) {
+				//fmt.Printf("跳过 Deployment: %s\n", rec.DeployName)
 				continue
 			}
 			toUpdate = append(toUpdate, rec)
-			fmt.Printf("需要更新的 Deployment: %s\n", rec.DeployName)
+			fmt.Printf("需要更新的 Deployment: %s\n", rec.ResourceName)
+			//显示最新的值
+			fmt.Printf("   CPU-request: %v\n", rec.Containers[0].Request["cpu"])
+			fmt.Printf("   Memory-request: %v\n", rec.Containers[0].Request["memory"])
+			fmt.Printf("   CPU-limit: %v\n", rec.Containers[0].Limit["cpu"])
+			fmt.Printf("   Memory-limit: %v\n", rec.Containers[0].Limit["memory"])
+
 		}
 
 		if len(toUpdate) == 0 {
 			fmt.Printf("没有需要更新的 Deployment\n")
 			continue
 		}
-
+		//处理命名空间下的推荐项
 		batchResult := update.ProcessNamespaceBatch(dynamicClient, ns, toUpdate, cfg.UpdatePolicy)
 		result.Records = append(result.Records, batchResult.Records...)
 		result.SuccessCount += batchResult.SuccessCount
 		result.FailureCount += batchResult.FailureCount
 		result.TotalCount += batchResult.TotalCount
 	}
-
+	result.Cluster = cfg.Cluster
 	result.EndTime = time.Now().Format(time.RFC3339)
 
 	fmt.Printf("\n更新统计:\n")
+	fmt.Printf("   集群: %s\n", result.Cluster)
 	fmt.Printf("   总数: %d\n", result.TotalCount)
 	fmt.Printf("   成功: %d\n", result.SuccessCount)
 	fmt.Printf("   失败: %d\n", result.FailureCount)

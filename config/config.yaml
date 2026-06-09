@@ -2,8 +2,9 @@
 
 # Kubernetes 配置
 # kubeconfig 方式（本地开发使用）
-kubeconfig: "/Users/Zhuanz/.kube/public-dev"
-
+kubeconfig: "/Users/Zhuanz/.kube/aliyun-public-dev"
+# 集群名称
+cluster: "aliyun-public-dev"
 # in-cluster 方式（Pod 内运行使用，自动使用 ServiceAccount）,优先级高于kubeconfig
 in_cluster: false
 # Kubernetes API Server 地址（可选，用于 in-cluster 模式）
@@ -14,25 +15,40 @@ filters:
 # 包含的命名空间
   namespaces:
     #- ".*"
-    - "devops"
-    - "others-dev"
+    - "cloud-dev"
+    - "cloud-staging"
   #排除命名空间（优先级比namespaces高）
   exclude_namespaces:
     #- ".*"
-    # - "kube-system"
-    # - "default"
-    # - "kubesphere-system"
-    # - "ack-csi-fuse"
-    # - "ack-onepilot"
-  # 包含的 Deployment
+    - "kube-system"
+    - "default"
+    - "kube-node-lease"
+    - "kube-public"
+    - "mse-ingress-controller"
+  # 包含的 Deployment、StatefulSet
   deployments:
-    - "devops/.*"
-    - "others-dev/internbootcamp.*"
+    - "cloud-dev/model-med-bench-arena-sts"
+    - "cloud-dev/model-med-bench-sp-sts"
+    #- "cloud-dev/ai4s-hmi-api-deploy"
+    #- "cloud-dev/magicmaker2-overall-animation-sts"
+    - "cloud-dev/medbench-sp-be-deploy"
+    - "cloud-dev/medbench-op-be-deploy"
+    #- "cloud-dev/deeplink-kernel-agent-sts"
+    #- "cloud-dev/inference-capacity-manager-deploy"
+    #- "cloud-dev/model-cn-fin-bench-sts"
+    #- "cloud-dev/ai-index-plus-v2-arxiv-be-deploy"
+    #- "cloud-staging/puyu-admin-beta-deploy"
+    #- "cloud-staging/internlm-be-deploy"
+    #- "cloud-staging/deepresearch-api-deploy"
+    #- "cloud-staging/moce-be-dev-deploy"
+    #- "cloud-staging/argue-be-deploy"
+    #- "cloud-staging/inference-capacity-manager-deploy"
+    #- "cloud-staging/deeplink-kernel-agent-sts"
 
   # 排除的 Deployment(优先级比deployments高)
   exclude_deployments:
-    - "others-dev/chat2issue.*"
-    - "devops/webqa-agent-placeholder"
+    #- "others-dev/chat2issue.*"
+    #- "devops/webqa-agent-placeholder"
 # 更新策略
 update_policy:
   # 每批更新的数量
@@ -42,14 +58,14 @@ update_policy:
   # Pod 就绪超时时间（秒）
   pod_ready_timeout: 300
   # 检查间隔时间（秒）
-  check_interval: 30
+  check_interval: 60
   # 安全冗余值（0-1）
-  safetyRedundancy: 1
+  safetyRedundancy: 0.5
 
 # 飞书配置
 feishu:
   # 是否启用
-  enabled: false
+  enabled: true
   # 飞书机器人 Webhook URL
   webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/3ae16c18-42f6-4c12-8214-f9a85c49a009"
   # 飞书机器人密钥

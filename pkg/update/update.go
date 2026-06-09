@@ -19,17 +19,21 @@ import (
 
 // 处理更新操作和批次管理
 type UpdateRecord struct {
+	Kind          string            `json:"kind"` // 资源类型
 	Timestamp     string            `json:"timestamp"`
 	Namespace     string            `json:"namespace"`
-	Deployment    string            `json:"deployment"`
+	ResourceName  string            `json:"resource_name"`
 	ContainerName string            `json:"container_name"`
-	Request       map[string]string `json:"request"`
-	Limit         map[string]string `json:"limit"`
+	Request       map[string]string `json:"request"` // request资源推荐值
+	Limit         map[string]string `json:"limit"`   // limit资源推荐值
 	Status        string            `json:"status"`
 	Error         string            `json:"error,omitempty"`
+	OrignRequest  map[string]string `json:"or_request,omitempty"` // 原始request
+	OrignLimit    map[string]string `json:"or_limit,omitempty"`   // 原始limit
 }
 
 type UpdateResult struct {
+	Cluster      string         `json:"cluster"` // 集群名称
 	TotalCount   int            `json:"total_count"`
 	SuccessCount int            `json:"success_count"`
 	FailureCount int            `json:"failure_count"`
@@ -82,20 +86,23 @@ func ProcessBatch(dynamicClient *dynamic.DynamicClient, namespace string, batch 
 			record := UpdateRecord{
 				Timestamp:     time.Now().Format(time.RFC3339),
 				Namespace:     namespace,
-				Deployment:    rec.DeployName,
+				ResourceName:  rec.ResourceName,
 				ContainerName: container.ContainerName,
 				Request:       container.Request,
 				Limit:         container.Limit,
+				OrignRequest:  container.OriginRequest,
+				OrignLimit:    container.OriginLimit,
 				Status:        "success",
+				Kind:          container.Kind, // 资源类型
 			}
-			err := UpdateDeploymentResources(dynamicClient, namespace, rec.DeployName, container)
+			err := UpdateDeploymentResources(dynamicClient, namespace, rec.ResourceName, container)
 			if err != nil {
 				record.Status = "failure"
 				record.Error = err.Error()
-				fmt.Printf("     更新失败 %s/%s: %v\n", namespace, rec.DeployName, err)
+				fmt.Printf("     更新失败 %s/%s: %v\n", namespace, rec.ResourceName, err)
 			} else {
 				fmt.Printf("     更新成功 %s/%s - %s: requestCPU=%v, limitCPU=%v, requestMem=%s, limitMem=%s\n",
-					namespace, rec.DeployName, container.ContainerName, container.Request["cpu"], container.Limit["cpu"], container.Request["memory"], container.Limit["memory"])
+					namespace, rec.ResourceName, container.ContainerName, container.Request["cpu"], container.Limit["cpu"], container.Request["memory"], container.Limit["memory"])
 			}
 			records = append(records, record)
 		}
@@ -103,21 +110,42 @@ func ProcessBatch(dynamicClient *dynamic.DynamicClient, namespace string, batch 
 	return records
 }
 
-func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, deployName string, container ack.ContainerRecommendation) error {
+func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, resourceName string, container ack.ContainerRecommendation) error {
 	ctx := context.Background()
 	//定义Deployment的GVR资源
-	deploymentGVR := schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "deployments",
+	var resourceGVR schema.GroupVersionResource
+	switch container.Kind {
+	case "Deployment":
+		// 定义 Deployment 的 GVR 资源
+		resourceGVR = schema.GroupVersionResource{
+			Group:    "apps",
+			Version:  "v1",
+			Resource: "deployments",
+		}
+	case "StatefulSet":
+		// 定义 StatefulSet 的 GVR 资源
+		resourceGVR = schema.GroupVersionResource{
+			Group:    "apps",
+			Version:  "v1",
+			Resource: "statefulsets",
+		}
+	default:
+		return fmt.Errorf("不支持的资源类型: %s", container.Kind)
 	}
-	//获取Deployment资源
-	deploy, err := dynamicClient.Resource(deploymentGVR).Namespace(namespace).Get(ctx, deployName, metav1.GetOptions{})
+
+	// deploymentGVR := schema.GroupVersionResource{
+	// 	Group:    "apps",
+	// 	Version:  "v1",
+	// 	Resource: "deployments",
+	// }
+
+	//获取Kind资源
+	deploy, err := dynamicClient.Resource(resourceGVR).Namespace(namespace).Get(ctx, resourceName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Printf("     获取 Deployment %s/%s 失败: %v\n", namespace, deployName, err)
+		fmt.Printf("     获取 %s %s/%s 失败: %v\n", container.Kind, namespace, resourceName, err)
 		return err
 	}
-	//获取Deployment的容器资源
+	//获取Kind资源的容器资源
 	containers, found, err := unstructured.NestedSlice(deploy.Object, "spec", "template", "spec", "containers")
 	if err != nil || !found {
 		return fmt.Errorf("未找到容器列表或格式错误：%v\n", err)
@@ -137,6 +165,10 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 			if err != nil {
 				return fmt.Errorf("解析 CPU request资源失败: %v\n", err)
 			}
+			cpuQtyLimit, err := resource.ParseQuantity(container.Limit["cpu"])
+			if err != nil {
+				return fmt.Errorf("解析 CPU limit资源失败: %v\n", err)
+			}
 			memQtyRequset, err := resource.ParseQuantity(container.Request["memory"])
 			if err != nil {
 				return fmt.Errorf("解析 Memory request资源失败: %v\n", err)
@@ -148,10 +180,11 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 
 			// 更新容器资源
 			cpuRequestStr := cpuQtyRequest.String()
+			cpuLimitStr := cpuQtyLimit.String()
 			memRequestStr := memQtyRequset.String()
 			memLimitStr := memQtyLimit.String()
 
-			// 修改容器Map中的资源（只设置 memory limit，不设置 CPU limit）
+			// 修改容器Map中的资源
 			resources := make(map[string]interface{})
 			resources["requests"] = map[string]interface{}{
 				"cpu":    cpuRequestStr,
@@ -159,6 +192,7 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 			}
 			resources["limits"] = map[string]interface{}{
 				"memory": memLimitStr,
+				"cpu":    cpuLimitStr,
 			}
 			containerMap["resources"] = resources
 			containers[i] = containerMap
@@ -175,9 +209,9 @@ func UpdateDeploymentResources(dynamicClient *dynamic.DynamicClient, namespace, 
 		return fmt.Errorf("设置容器列表失败: %v\n", err)
 	}
 
-	//更新deployment
-	if _, err := dynamicClient.Resource(deploymentGVR).Namespace(namespace).Update(ctx, deploy, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("更新 Deployment %s/%s 失败: %v\n", namespace, deployName, err)
+	//更新Kind资源
+	if _, err := dynamicClient.Resource(resourceGVR).Namespace(namespace).Update(ctx, deploy, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("更新 %s %s/%s 失败: %v\n", container.Kind, namespace, resourceName, err)
 	}
 
 	return nil

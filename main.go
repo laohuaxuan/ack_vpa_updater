@@ -208,11 +208,11 @@ func updateTask(dynamicClient *dynamic.DynamicClient, cfg *config.Config) error 
 			continue
 		}
 		//处理命名空间下的推荐项
-		// batchResult := update.ProcessNamespaceBatch(dynamicClient, ns, toUpdate, cfg.UpdatePolicy)
-		// result.Records = append(result.Records, batchResult.Records...)
-		// result.SuccessCount += batchResult.SuccessCount
-		// result.FailureCount += batchResult.FailureCount
-		// result.TotalCount += batchResult.TotalCount
+		batchResult := update.ProcessNamespaceBatch(dynamicClient, ns, toUpdate, cfg.UpdatePolicy)
+		result.Records = append(result.Records, batchResult.Records...)
+		result.SuccessCount += batchResult.SuccessCount
+		result.FailureCount += batchResult.FailureCount
+		result.TotalCount += batchResult.TotalCount
 	}
 	result.Cluster = cfg.Cluster
 	result.EndTime = time.Now().Format(time.RFC3339)

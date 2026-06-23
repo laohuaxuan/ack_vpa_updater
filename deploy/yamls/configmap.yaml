@@ -5,7 +5,7 @@ metadata:
   namespace: devops
 data:
   config.yaml: |
-    kubeconfig: "/Users/Zhuanz/.kube/public-dev"
+    kubeconfig: "/Users/Zhuanz/.kube/aliyun-public-dev"
 
     # in-cluster 方式（Pod 内运行使用，自动使用 ServiceAccount）,优先级高于kubeconfig
     in_cluster: true

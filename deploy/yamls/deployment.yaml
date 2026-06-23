@@ -29,10 +29,10 @@ spec:
           name: http
         env:
         - name: CONFIG_FILE
-          value: "/app/config.yaml"
+          value: "/app/config/config.yaml"
         volumeMounts:
         - name: config
-          mountPath: /app/config.yaml
+          mountPath: /app/config/config.yaml
           subPath: config.yaml
         resources:
           requests:

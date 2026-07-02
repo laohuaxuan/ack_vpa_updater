@@ -43,14 +43,14 @@ func ConvertUnit(cpuStr, memStr string) (cpu int64, mem int64, err error) {
 
 // 计算resource
 func GetTargetAndLimitResources(imgVal, safetyRedundancy, currentLimitVal, currentRequestVal float64) (targetVal, limitVal float64) {
-	//计算新的CPU推荐值和limit值
 	targetVal = float64(imgVal) * (1 + safetyRedundancy)
 	if targetVal > 0 && imgVal > 0 {
-		// limitVal = targetVal * float64(currentLimitVal/currentRequestVal) #容易失真
-		limitVal = targetVal * float64(currentLimitVal/imgVal) //根据画像值计算，贴合实际
-		//Limit值不能超过3倍推荐值
+		limitVal = targetVal * float64(currentLimitVal/imgVal)
 		if limitVal > targetVal*3 {
 			limitVal = targetVal * 3
+		}
+		if limitVal < targetVal {
+			limitVal = targetVal
 		}
 	}
 	return targetVal, limitVal
